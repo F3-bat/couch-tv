@@ -414,12 +414,7 @@ class Server(private val ctx: Context, port: Int) : NanoWSD(port) {
         newChunkedResponse(Response.Status.OK, mime(path), stream).noCache()
     } catch (e: IOException) { newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "Not found") }
 
-    private fun mime(p: String) = when (p.substringAfterLast('.').lowercase()) {
-        "html" -> "text/html; charset=utf-8"; "js", "mjs" -> "application/javascript"; "css" -> "text/css"
-        "json" -> "application/json"; "webmanifest" -> "application/manifest+json"; "png" -> "image/png"
-        "jpg", "jpeg" -> "image/jpeg"; "webp" -> "image/webp"; "svg" -> "image/svg+xml"; "woff2" -> "font/woff2"
-        "ico" -> "image/x-icon"; "txt" -> "text/plain"; else -> "application/octet-stream"
-    }
+    private fun mime(p: String) = RustCore.mime(p)
 
     private fun redirect(to: String) = newFixedLengthResponse(Response.Status.REDIRECT, "text/plain", "").apply { addHeader("Location", to) }
 
