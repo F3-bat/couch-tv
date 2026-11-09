@@ -38,7 +38,7 @@ object Store {
     }
 
     // ---------- settings the household can change from the phone (/setup) ----------
-    val port get() = int("port", 5400)
+    // Keep the test APK on its own port so it cannot collide with Couch TV OnTV.\n    val port get() = int("port", if (BuildConfig.APPLICATION_ID.endsWith(".rustexp")) 5401 else 5400)
 
     fun people(): JSONArray = (str("people")?.let { runCatching { JSONArray(it) }.getOrNull() })
         ?: JSONArray().put(JSONObject().put("id", "person1").put("name", "Person 1")).put(JSONObject().put("id", "person2").put("name", "Person 2"))
