@@ -60,8 +60,8 @@ jobs:
 
       - name: Build independent Rust test APK
         run: |
-          chmod +x on-tv/android/gradlew
-          on-tv/android/gradlew -p on-tv/android --no-daemon assembleRelease -PrustExperiment=true
+          chmod +x tv-home/android/gradlew
+          tv-home/android/gradlew -p on-tv/android --no-daemon assembleRelease -PrustExperiment=true
 
       - name: Check native libraries are in the APK
         run: |
