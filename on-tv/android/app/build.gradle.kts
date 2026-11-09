@@ -3,6 +3,8 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+val rustExperiment = project.findProperty("rustExperiment") == "true"
+
 android {
     namespace = "dev.couchtv.ontv"
     compileSdk = 34
@@ -12,6 +14,7 @@ android {
         targetSdk = 34
         versionCode = 12
         versionName = "0.12"
+        manifestPlaceholders["appLabel"] = if (rustExperiment) "Couch TV Rust Test" else "Couch TV"
     }
     buildFeatures { buildConfig = true }
     // Test builds: when COUCHTV_KEYSTORE names a keystore (a debug-style key, alias androiddebugkey,
@@ -27,6 +30,10 @@ android {
     }
     buildTypes {
         release {
+            if (rustExperiment) {
+                applicationIdSuffix = ".rustexp"
+                versionNameSuffix = "-rustexp"
+            }
             // Not minified: libadb, Conscrypt and BouncyCastle use reflection, and the size saving is small.
             isMinifyEnabled = false
             // Signed with the local debug key so it installs without a keystore. Use your own key to publish.
