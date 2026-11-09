@@ -1,0 +1,76 @@
+name: OnTV Rust experimental APK
+
+on:
+  push:
+    branches: [rust-experimental]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Java for Gradle
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Android SDK / NDK
+        uses: android-actions/setup-android@v3
+      - name: Install Android components
+        run: sdkmanager "platforms;android-34" "build-tools;34.0.0" "ndk;27.2.12479018"
+
+      - name: Rust toolchain (TV ABIs)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi
+
+      - name: Test native core on host
+        run: cargo test --manifest-path on-tv/rust-core/Cargo.toml
+
+      - name: Build and stage Android native libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+          TOOLCHAIN="$ANDROID_HOME/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$TOOLCHAIN/aarch64-linux-android25-clang"
+          export CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_LINKER="$TOOLCHAIN/armv7a-linux-androideabi25-clang"
+          cargo build --manifest-path on-tv/rust-core/Cargo.toml --release --target aarch64-linux-android
+          cargo build --manifest-path on-tv/rust-core/Cargo.toml --release --target armv7-linux-androideabi
+          mkdir -p on-tv/android/app/src/main/jniLibs/{arm64-v8a,armeabi-v7a}
+          cp on-tv/rust-core/target/aarch64-linux-android/release/libcouchtv_rust.so on-tv/android/app/src/main/jniLibs/arm64-v8a/
+          cp on-tv/rust-core/target/armv7-linux-androideabi/release/libcouchtv_rust.so on-tv/android/app/src/main/jniLibs/armeabi-v7a/
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: remote/package-lock.json
+
+      - name: Build phone remote bundled in OnTV
+        run: |
+          npm ci --prefix remote --no-audit --no-fund
+          npm run build --prefix remote
+
+      - name: Build independent Rust test APK
+        run: |
+          chmod +x on-tv/android/gradlew
+          on-tv/android/gradlew -p on-tv/android --no-daemon assembleRelease -PrustExperiment=true
+
+      - name: Check native libraries are in the APK
+        run: |
+          unzip -l on-tv/android/app/build/outputs/apk/release/app-release.apk | grep 'lib/arm64-v8a/libcouchtv_rust.so'
+          unzip -l on-tv/android/app/build/outputs/apk/release/app-release.apk | grep 'lib/armeabi-v7a/libcouchtv_rust.so'
+
+      - name: Publish test APK as a workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: couch-tv-ontv-rust-experimental
+          path: on-tv/android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
