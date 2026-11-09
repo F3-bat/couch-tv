@@ -35,7 +35,7 @@
 
     <application
         android:name=".App"
-        android:label="Couch TV"
+        android:label="${appLabel}"
         android:icon="@drawable/icon"
         android:banner="@drawable/banner"
         android:theme="@style/Couch"
