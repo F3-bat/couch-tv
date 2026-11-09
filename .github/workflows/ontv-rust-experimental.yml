@@ -63,6 +63,10 @@ jobs:
           chmod +x tv-home/android/gradlew
           tv-home/android/gradlew -p on-tv/android --no-daemon assembleRelease -PrustExperiment=true
 
+      - name: Verify isolated APK application ID
+        run: |
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging on-tv/android/app/build/outputs/apk/release/app-release.apk | grep -F "package: name='dev.couchtv.ontv.rustexp'"
+
       - name: Check native libraries are in the APK
         run: |
           unzip -l on-tv/android/app/build/outputs/apk/release/app-release.apk | grep 'lib/arm64-v8a/libcouchtv_rust.so'
